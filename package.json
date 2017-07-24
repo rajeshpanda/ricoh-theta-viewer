@@ -1,0 +1,22 @@
+{
+  "name": "ricoh-theta-viewer",
+  "version": "1.0.0",
+  "description": "Ricoh theta 360 viewer module for angular 2 ",
+  "main": "index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "repository": {
+    "type": "git",
+    "url": "ricoh-theta-viewer"
+  },
+  "keywords": [
+    "ricoh",
+    "theta",
+    "viewer",
+    "360",
+    "panorama"
+  ],
+  "author": "Rajesh Panda",
+  "license": "MIT"
+}
