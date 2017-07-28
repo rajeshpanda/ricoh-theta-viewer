@@ -1,5 +1,5 @@
-class ThView {
-    constructor(arg) {
+var ThView = (function () {
+    function ThView(arg, callback) {
         this.d2r = function (d) { return d * Math.PI / 180; };
         this.id = arg.id;											// id of parent element *required*
         // note: image file must be located at same origin
@@ -62,15 +62,15 @@ class ThView {
         this.element.style.cursor = 'move';
 
         ///////// call main process
-        this.show();
+        this.show(callback);
     }
 
-    toggleRotation = function () {
+    ThView.prototype.toggleRotation = function () {
         this.rotation = !this.rotation;
     }
 
     ///////// drag callback
-    rotateCamera = function (x, y) {
+    ThView.prototype.rotateCamera = function (x, y) {
         if (!this.mousedown)
             return;
 
@@ -100,7 +100,7 @@ class ThView {
         this.moving = true;
     }
 
-    setCameraDir = function (alpha, beta, gamma) {
+    ThView.prototype.setCameraDir = function (alpha, beta, gamma) {
         if (this.rotation) {
             this.rotation = false;
         }
@@ -142,7 +142,7 @@ class ThView {
     };
 
     ///////// wheel callback
-    zoomCamera = function (val) {
+    ThView.prototype.zoomCamera = function (val) {
         this.zoom += val * 0.1;
         if (this.zoom < 20) this.zoom = 20;
         if (this.zoom > 130) this.zoom = 130;
@@ -158,7 +158,7 @@ class ThView {
 
 
     ///////// main process
-    show = function () {
+    ThView.prototype.show = function (callback) {
         var self = this;
 
         ///////// RENDERER
@@ -174,17 +174,17 @@ class ThView {
         this.element.appendChild(renderer.domElement);	// append to <DIV>
 
         ///////// callback setting
-        var onmouseupOrg = document.onmouseup;
-        document.onmouseup = function () {
+        var onmouseupOrg = document.onpointerup;
+        document.onpointerup = function () {
             if (onmouseupOrg)
                 onmouseupOrg();
             self.mousedown = false;
         };
-        this.element.onmousedown = function (e) {
+        this.element.onpointerdown = function (e) {
             self.mousedown = true;
             self.oldPosition = { x: e.pageX, y: e.pageY };
         };
-        this.element.onmousemove = function (e) {
+        this.element.onpointermove = function (e) {
             self.rotateCamera(e.pageX, e.pageY);
         };
         this.element.onclick = function () {
@@ -266,7 +266,7 @@ class ThView {
         scene.add(this.mesh);
 
         ///////// Draw Loop
-        function render() {
+        function render(callback) {
             requestAnimationFrame(render);
             if ((self.rotation) && (!self.isSlave)) {
                 self.mesh.rotation.y += self.speed;
@@ -275,10 +275,12 @@ class ThView {
                 }
             }
             renderer.render(scene, self.camera);
+            callback();
         };
-        render();
+        render(callback);
     }
+    return ThView;
 
-}
+}());
 
-export default ThView;
+exports.ThView = ThView;
