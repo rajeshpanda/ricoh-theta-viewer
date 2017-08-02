@@ -1,4 +1,4 @@
-export default class ThView {
+export declare class RicohView {
     constructor(args);
 
     toggleRotation();
@@ -10,5 +10,7 @@ export default class ThView {
     zoomCamera(val);
 
     show();
+
+    stopRendering();
 
 }

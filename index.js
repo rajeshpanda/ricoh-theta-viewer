@@ -1,13 +1,11 @@
-var ThView = (function () {
-    function ThView(arg, callback) {
+var THREE = require('./three.min.js');
+var RicohView = (function () {
+    function RicohView(arg) {
         this.d2r = function (d) { return d * Math.PI / 180; };
         this.id = arg.id;											// id of parent element *required*
         // note: image file must be located at same origin
-        if (arg.file instanceof Array) {
-            this.file = arg.file;									// filename *required*
-        } else {
-            this.file = [arg.file];
-        }
+        this.file = arg.file;
+        this.renderer = new THREE.WebGLRenderer({ antialias: true });
         this.interval = (arg.interval == undefined) ? 500 : arg.interval;		// animation rate
 
         this.width = (arg.width == undefined) ? 500 : arg.width;				// pixel (500)
@@ -28,10 +26,13 @@ var ThView = (function () {
         this.oldPosition = { x: null, y: null };
         this.mousedown = false;
         this.moving = false;
-
+        this.tpCache = [];
+        this.orientationChange = arg.orientationChange == undefined ? false : arg.orientationChange;
+        this.isRotationAllowed = this.rotation;
         ///////// interval images
         this.imageNo = 0;
-
+        this.canRender = true;
+        this.requestId = 0;
         ///////// parent element
         this.element = document.getElementById(this.id);
 
@@ -53,7 +54,7 @@ var ThView = (function () {
             this.element.appendChild(slavediv);
             arg.element = slavediv;
 
-            this.sync = new ThView(arg);
+            this.sync = new RicohView(arg);
             this.sync.sync = this;
             this.sync.isSlave = true;
         }
@@ -62,15 +63,15 @@ var ThView = (function () {
         this.element.style.cursor = 'move';
 
         ///////// call main process
-        this.show(callback);
+        this.show();
     }
 
-    ThView.prototype.toggleRotation = function () {
+    RicohView.prototype.toggleRotation = function () {
         this.rotation = !this.rotation;
     }
 
     ///////// drag callback
-    ThView.prototype.rotateCamera = function (x, y) {
+    RicohView.prototype.rotateCamera = function (x, y) {
         if (!this.mousedown)
             return;
 
@@ -100,7 +101,7 @@ var ThView = (function () {
         this.moving = true;
     }
 
-    ThView.prototype.setCameraDir = function (alpha, beta, gamma) {
+    RicohView.prototype.setCameraDir = function (alpha, beta, gamma) {
         if (this.rotation) {
             this.rotation = false;
         }
@@ -142,7 +143,7 @@ var ThView = (function () {
     };
 
     ///////// wheel callback
-    ThView.prototype.zoomCamera = function (val) {
+    RicohView.prototype.zoomCamera = function (val) {
         this.zoom += val * 0.1;
         if (this.zoom < 20) this.zoom = 20;
         if (this.zoom > 130) this.zoom = 130;
@@ -156,35 +157,37 @@ var ThView = (function () {
 
     }
 
+    RicohView.prototype.stopRendering = function () {
+        var self = this;
+        self.canRender = false;
+        self.renderer.forceContextLoss();
+        self.renderer.dispose();
+        console.log('renderer disposed');
+        cancelAnimationFrame(self.requestId);
+    }
 
     ///////// main process
-    ThView.prototype.show = function (callback) {
+    RicohView.prototype.show = function () {
         var self = this;
-
+        self.canRender = true;
         ///////// RENDERER
-        var renderer;
-        if (this.rendererType == 0)
-            renderer = new THREE.WebGLRenderer({ antialias: true });
-        else if (this.rendererType == 1)
-            renderer = new THREE.CanvasRenderer({ antialias: true });
-        else
-            renderer = new THREE.CSS3DRenderer({ antialias: true });
-        renderer.setSize(this.width, this.height);
-        renderer.setClearColor(0x000000, 1);
-        this.element.appendChild(renderer.domElement);	// append to <DIV>
+        self.renderer.setPixelRatio(window.devicePixelRatio);
+        self.renderer.setSize(this.width, this.height);
+        self.renderer.setClearColor(0x000000, 1);
+        this.element.appendChild(self.renderer.domElement);	// append to <DIV>
 
-        ///////// callback setting
+        ///////// mouse events setting
         var onmouseupOrg = document.onpointerup;
-        document.onpointerup = function () {
+        document.onmouseup = function () {
             if (onmouseupOrg)
                 onmouseupOrg();
             self.mousedown = false;
         };
-        this.element.onpointerdown = function (e) {
+        this.element.onmousedown = function (e) {
             self.mousedown = true;
             self.oldPosition = { x: e.pageX, y: e.pageY };
         };
-        this.element.onpointermove = function (e) {
+        this.element.onmousemove = function (e) {
             self.rotateCamera(e.pageX, e.pageY);
         };
         this.element.onclick = function () {
@@ -205,14 +208,62 @@ var ThView = (function () {
             e.preventDefault();
         });
 
-        // iOS
-        window.addEventListener("deviceorientation", function (e) {
-            if (e.alpha) {
-                self.setCameraDir(self.d2r(e.alpha), self.d2r(e.beta), self.d2r(e.gamma));
+        if (this.orientationChange) {
+            // iOS
+            window.addEventListener("deviceorientation", function (e) {
+                if (e.alpha) {
+                    self.setCameraDir(self.d2r(e.alpha), self.d2r(e.beta), self.d2r(e.gamma));
+                }
+            });
+            window.addEventListener("orientationchange", function (e) {
+            });
+        }
+
+        // Touch events
+        ///////// callback setting
+        this.element.ontouchend = function (e) {
+            self.mousedown = false;
+        };
+        this.element.ontouchstart = function (e) {
+            self.mousedown = true;
+            if (e.touches.length == 1) {
+                self.oldPosition = { x: e.touches[0].pageX, y: e.touches[0].pageY };
             }
-        });
-        window.addEventListener("orientationchange", function (e) {
-        });
+            if (e.targetTouches.length == 2) {
+                self.tpCache = [];
+                for (var i = 0; i < e.targetTouches.length; i++) {
+                    self.tpCache.push(e.targetTouches[i]);
+                }
+            }
+        };
+        this.element.ontouchmove = function (e) {
+            if (e.touches.length == 1) {
+                self.rotateCamera(e.touches[0].pageX, e.touches[0].pageY);
+            }
+            if (e.targetTouches.length == 2 && e.changedTouches.length == 2) {
+                // Check if the two target touches are the same ones that started
+                // the 2-touch
+                var point1 = -1, point2 = -1;
+                for (var i = 0; i < self.tpCache.length; i++) {
+                    if (self.tpCache[i].identifier == e.targetTouches[0].identifier) point1 = i;
+                    if (self.tpCache[i].identifier == e.targetTouches[1].identifier) point2 = i;
+                }
+                if (point1 >= 0 && point2 >= 0) {
+
+                    // Calculate the difference between the start and move coordinates
+
+                    var previous_length = Math.sqrt(Math.pow(self.tpCache[point1].clientX - self.tpCache[point2].clientX, 2) + Math.pow(self.tpCache[point1].clientY - self.tpCache[point2].clientY, 2));
+                    var current_length = Math.sqrt(Math.pow(e.targetTouches[0].clientX - e.targetTouches[1].clientX, 2) + Math.pow(e.targetTouches[0].clientY - e.targetTouches[1].clientY, 2));
+
+                    totalDiff = previous_length - current_length
+
+                    self.zoomCamera(totalDiff * 0.1);
+                }
+                else {
+                    self.tpCache = [];
+                }
+            }
+        };
 
         ///////// SCENE
         var scene = new THREE.Scene();
@@ -232,29 +283,16 @@ var ThView = (function () {
         var geometry = new THREE.SphereGeometry(100, 32, 16);
 
         ///////// TEXTURE
-        this.texture = new Array(this.file.length);
-        for (var i = 0; i < this.texture.length; i++) {
-            this.texture[i] = THREE.ImageUtils.loadTexture(this.file[i]);
-            this.texture[i].flipY = false;
-        }
+        var loader = new THREE.TextureLoader();
+        this.texture = loader.load(this.file);
+        this.texture.flipY = false;
 
         ///////// MATERIAL
         this.material = new THREE.MeshPhongMaterial({
             side: THREE.DoubleSide,
-            color: 0xffffff, specular: 0xcccccc, shininess: 50, ambient: 0xffffff,
-            map: this.texture[this.imageNo]
+            color: 0xffffff, specular: 0xcccccc, shininess: 50,
+            map: this.texture
         });
-
-        //// texture animation
-        if ((this.texture.length > 1) && (!self.isSlave)) {
-            setInterval(function () {
-                self.imageNo = (self.imageNo + 1) % self.texture.length;
-                self.material.map = self.texture[self.imageNo];
-                if (self.sync) {
-                    self.sync.material.map = self.sync.texture[self.imageNo];
-                }
-            }, this.interval);
-        }
 
         ///////// MESH
         this.mesh = new THREE.Mesh(geometry, this.material);
@@ -266,21 +304,21 @@ var ThView = (function () {
         scene.add(this.mesh);
 
         ///////// Draw Loop
-        function render(callback) {
-            requestAnimationFrame(render);
+        function render() {
+            if (self.canRender)
+                self.requestId = requestAnimationFrame(render);
             if ((self.rotation) && (!self.isSlave)) {
                 self.mesh.rotation.y += self.speed;
                 if (self.sync) {
                     self.sync.mesh.rotation.y += self.speed;
                 }
             }
-            renderer.render(scene, self.camera);
-            callback();
+            self.renderer.render(scene, self.camera);
         };
-        render(callback);
+        render();
     }
-    return ThView;
+    return RicohView;
 
 }());
 
-exports.ThView = ThView;
+exports.RicohView = RicohView;

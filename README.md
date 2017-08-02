@@ -1,33 +1,19 @@
-## Welcome to GitHub Pages
+##ricoh-theta-viewer
 
-You can use the [editor on GitHub](https://github.com/rajeshpanda/ricoh-theta-viewer/edit/master/README.md) to maintain and preview the content for your website in Markdown files.
+This is a [npm package](https://www.npmjs.com/package/ricoh-theta-viewer) which I used for rendering 360 degree images onto my ionic mobile project. The images were captured using a Ricoh Theta S.
+Major portion of this repo was copied from [Aike-thview.js](https://github.com/aike/thview.js). I have created this new repository because, the old one did not have some of the components like touch event handlings and closing the renderer object. On a device, the renderer, if kept running will eat up the GPU memory and the application will crash at some point of time (for my device, it took only 4 images to crash). Let me know if you need more help on this.
 
-Whenever you commit to this repository, GitHub Pages will run [Jekyll](https://jekyllrb.com/) to rebuild the pages in your site, from the content in your Markdown files.
+###How to use?
 
-### Markdown
+Since the three.min.js is already bundled with this npm package, do the following - 
 
-Markdown is a lightweight and easy-to-use syntax for styling your writing. It includes conventions for
+`import { RicohView } from 'ricoh-theta-viewer';`
 
-```markdown
-Syntax highlighted code block
+`var ricohView = new RicohView({ id: "ricoh-360-viewer", file: me.imageUrl, rendererType: 0, height: window.innerHeight - 100, width: window.innerWidth, zoom: 130 });`
 
-# Header 1
-## Header 2
-### Header 3
+- Use _ricohView_ object to call the _stopRendering()_ from your code.
 
-- Bulleted
-- List
 
-1. Numbered
-2. List
+###Note
 
-**Bold** and _Italic_ and `Code` text
-
-[Link](url) and ![Image](src)
-```
-
-For more details see [GitHub Flavored Markdown](https://guides.github.com/features/mastering-markdown/).
-
-### Support or Contact
-
-Having trouble with Pages? Check out our [documentation](https://help.github.com/categories/github-pages-basics/) or [contact support](https://github.com/contact) and we’ll help you sort it out.
+I am only supporting the WebGL renderer for now. Aike's repo supported Canvas and CSS3D as well. Also, the [repo](https://github.com/aike/thview.js) did not have any provision for stopping the renderer animation. So added _stopRendering()_.
