@@ -9,11 +9,13 @@ Since the three.min.js is already bundled with this npm package, do the followin
 
 `import { RicohView } from 'ricoh-theta-viewer';`
 
-`var ricohView = new RicohView({ id: "ricoh-360-viewer", file: _file-url_, rendererType: 0, height: window.innerHeight - 100, width: window.innerWidth, zoom: 130 });`
+`this.ricohView = new RicohView({ id: "ricoh-360-viewer", file: <fileName>, rendererType: 0, height: window.innerHeight, width: window.innerWidth, zoom: 130 });`
 
-`<div *ngIf="ricohImage" id="ricoh-360-viewer"></div>` on your html page.
+`<div id="ricoh-360-viewer"></div>` on your html page.
 
 - Use _ricohView_ object to call the _stopRendering()_ from your code.
+
+A sample code has been given too at [ricoh-theta-viewer-sample](https://github.com/rajeshpanda/ricoh-theta-viewer-sample)
 
 
 ### Note
