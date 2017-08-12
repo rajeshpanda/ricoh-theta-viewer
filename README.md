@@ -15,7 +15,7 @@ Since the three.min.js is already bundled with this npm package, do the followin
 
 - Use _ricohView_ object to call the _stopRendering()_ from your code.
 
-A sample code has been given too at [ricoh-theta-viewer-sample](https://github.com/rajeshpanda/ricoh-theta-viewer-sample)
+Find the app at [Google Drive](https://drive.google.com/open?id=0B_Li6uw9FByMd19kamlDOS13YkU)
 
 
 ### Note
